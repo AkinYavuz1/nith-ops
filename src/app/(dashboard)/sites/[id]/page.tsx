@@ -59,18 +59,14 @@ export default function SiteDetailPage() {
       setTraffic(Array.isArray(trafficData) ? [...trafficData].reverse() : [])
       setLoading(false)
 
-      // GitHub data
-      if (siteData?.github_repo && process.env.NEXT_PUBLIC_GITHUB_TOKEN) {
+      // GitHub data via server-side API (token stays server-side)
+      if (siteData?.github_repo) {
         try {
-          const [commitsRes, prsRes] = await Promise.all([
-            fetch(`https://api.github.com/repos/${siteData.github_repo}/commits?per_page=5`, { signal: AbortSignal.timeout(8000) }),
-            fetch(`https://api.github.com/repos/${siteData.github_repo}/pulls?state=open`, { signal: AbortSignal.timeout(8000) }),
-          ])
-          const [commits, prs] = await Promise.all([
-            commitsRes.ok ? commitsRes.json() : [],
-            prsRes.ok ? prsRes.json() : [],
-          ])
-          setGithubData({ commits: Array.isArray(commits) ? commits : [], prs: Array.isArray(prs) ? prs.length : 0 })
+          const ghRes = await fetch(`/api/github?repo=${encodeURIComponent(siteData.github_repo)}`, { signal: AbortSignal.timeout(10000) })
+          if (ghRes.ok) {
+            const ghData = await ghRes.json()
+            if (ghData.configured) setGithubData({ commits: ghData.commits, prs: ghData.prs })
+          }
         } catch { /* GitHub data is optional */ }
       }
     } catch {
