@@ -29,10 +29,10 @@ export async function GET() {
         .order('current_streak', { ascending: false })
         .limit(5),
       fetch('https://daily-duel.akinlive.workers.dev', {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(5000),
+        method: 'GET',
+        signal: AbortSignal.timeout(8000),
       })
-        .then((r) => ({ ok: r.ok, status: r.status }))
+        .then((r) => ({ ok: r.ok || r.status === 304, status: r.status }))
         .catch(() => ({ ok: false, status: 0 })),
     ])
 

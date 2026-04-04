@@ -26,11 +26,12 @@ interface SiteWithCheck extends Site {
 
 function DailyDuelSummaryCard() {
   const [dd, setDD] = useState<{ totalUsers: number; playedToday: number; avgScoreToday: number; deploy: { up: boolean } } | null>(null)
+  const [error, setError] = useState(false)
   useEffect(() => {
-    fetch('/api/dailyduel', { signal: AbortSignal.timeout(10000) })
-      .then((r) => r.ok ? r.json() : null)
-      .then(setDD)
-      .catch(() => {})
+    fetch('/api/dailyduel', { signal: AbortSignal.timeout(12000) })
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((d) => { setDD(d); setError(false) })
+      .catch(() => setError(true))
   }, [])
 
   return (
@@ -39,28 +40,33 @@ function DailyDuelSummaryCard() {
         <div className="flex items-center gap-2">
           <Gamepad2 className="w-4 h-4 text-[#D4A84B]" />
           <span className="text-sm font-medium text-[#E4E7EC]">DailyDuel</span>
-          <span className="text-xs text-[#9BA1B0]">daily-duel.akinlive.workers.dev</span>
+          {dd && (
+            dd.deploy.up
+              ? <CheckCircle className="w-3.5 h-3.5 text-[#22C55E]" />
+              : <XCircle className="w-3.5 h-3.5 text-[#EF4444]" />
+          )}
+          {!dd && !error && <span className="w-3 h-3 rounded-full bg-[#2E3241] animate-pulse" />}
         </div>
-        {dd ? (
-          dd.deploy.up
-            ? <CheckCircle className="w-4 h-4 text-[#22C55E]" />
-            : <XCircle className="w-4 h-4 text-[#EF4444]" />
-        ) : <span className="w-4 h-4 rounded-full bg-[#2E3241] animate-pulse" />}
+        <Link href="/dailyduel" className="text-xs text-[#3B82F6] hover:underline">View →</Link>
       </div>
-      <div className="grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <p className="text-xs text-[#9BA1B0] mb-0.5">Users</p>
-          <p className="font-semibold text-[#E4E7EC]">{dd ? dd.totalUsers : '—'}</p>
+      {error ? (
+        <p className="text-xs text-[#9BA1B0]">Could not load data</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <p className="text-xs text-[#9BA1B0] mb-0.5">Users</p>
+            <p className="font-semibold text-[#E4E7EC]">{dd ? dd.totalUsers : '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[#9BA1B0] mb-0.5">Played Today</p>
+            <p className="font-semibold text-[#E4E7EC]">{dd ? dd.playedToday : '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-[#9BA1B0] mb-0.5">Avg Score</p>
+            <p className="font-semibold text-[#E4E7EC]">{dd ? `${dd.avgScoreToday}/10` : '—'}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-[#9BA1B0] mb-0.5">Played Today</p>
-          <p className="font-semibold text-[#E4E7EC]">{dd ? dd.playedToday : '—'}</p>
-        </div>
-        <div>
-          <p className="text-xs text-[#9BA1B0] mb-0.5">Avg Score</p>
-          <p className="font-semibold text-[#E4E7EC]">{dd ? `${dd.avgScoreToday}/10` : '—'}</p>
-        </div>
-      </div>
+      )}
     </Card>
   )
 }
