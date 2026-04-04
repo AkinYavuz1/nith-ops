@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Gamepad2,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/clients', label: 'Clients', icon: Users },
   { href: '/billing', label: 'Billing', icon: CreditCard },
   { href: '/activity', label: 'Activity', icon: Clock },
+  { href: '/dailyduel', label: 'DailyDuel', icon: Gamepad2 },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
