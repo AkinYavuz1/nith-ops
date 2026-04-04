@@ -23,18 +23,24 @@ export default function UptimePage() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
   const [ddUp, setDdUp] = useState<boolean | null>(null)
   const [ddCheckedAt, setDdCheckedAt] = useState<string | null>(null)
+  const [isMockData, setIsMockData] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
       const sitesRes = await fetch('/api/sites', { signal: AbortSignal.timeout(10000) })
       const sitesData: Site[] = sitesRes.ok ? await sitesRes.json() : []
 
-      const checkPromises = sitesData.map((s) =>
-        fetch(`/api/uptime?site_id=${s.id}&limit=30`, { signal: AbortSignal.timeout(10000) })
-          .then((r) => r.ok ? r.json() : [])
-          .catch(() => [])
+      const checkResponses = await Promise.all(
+        sitesData.map((s) =>
+          fetch(`/api/uptime?site_id=${s.id}&limit=30`, { signal: AbortSignal.timeout(10000) })
+            .catch(() => null)
+        )
       )
-      const checksData = await Promise.all(checkPromises)
+      const anyMock = checkResponses.some((r) => r?.headers.get('X-Data-Source') === 'mock')
+      setIsMockData(anyMock)
+      const checksData = await Promise.all(
+        checkResponses.map((r) => (r?.ok ? r.json() : []))
+      )
 
       setSites(
         sitesData.map((s, i) => {
@@ -133,11 +139,23 @@ export default function UptimePage() {
         </div>
       </div>
 
-      <div className="bg-[#1A1D27] border border-[#D4A84B]/20 rounded-xl p-4">
+      {isMockData && (
+        <div className="bg-[#2B1D0E] border border-[#F59E0B]/30 rounded-xl p-3 flex items-center gap-2">
+          <span className="text-[#F59E0B] text-xs font-medium">Sample data</span>
+          <span className="text-[#9BA1B0] text-xs">— No real uptime checks recorded yet. Run "Check all now" to start collecting data.</span>
+        </div>
+      )}
+
+      <div className="bg-[#1A1D27] border border-[#D4A84B]/20 rounded-xl p-4 space-y-1">
         <p className="text-sm text-[#9BA1B0]">
-          <span className="text-[#D4A84B] font-medium">Note:</span> Uptime checks run while this dashboard is open, every 5 minutes.
-          For 24/7 monitoring, consider adding a scheduled Supabase Edge Function or external service like UptimeRobot.
+          <span className="text-[#D4A84B] font-medium">Manual checks</span> run while this page is open, every 5 minutes.
           {lastChecked && ` Last checked: ${timeAgo(lastChecked.toISOString())}`}
+        </p>
+        <p className="text-sm text-[#9BA1B0]">
+          <span className="text-[#D4A84B] font-medium">24/7 monitoring:</span> Set up a cron job to call{' '}
+          <code className="text-xs bg-[#0F1117] px-1 rounded text-[#E4E7EC]">/api/cron/uptime-check?secret=YOUR_CRON_SECRET</code>{' '}
+          every 5 min via <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[#3B82F6] hover:underline">cron-job.org</a> (free) or GitHub Actions.
+          Set <code className="text-xs bg-[#0F1117] px-1 rounded text-[#E4E7EC]">CRON_SECRET</code> in your env vars.
         </p>
       </div>
 

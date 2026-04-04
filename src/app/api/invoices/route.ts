@@ -22,7 +22,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { data, error } = await supabase.from('ops_invoices').insert(body).select().single()
+  const { data, error } = await supabase
+    .from('ops_invoices')
+    .insert(body)
+    .select('*, site:ops_sites(name, client_name)')
+    .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  const siteName = data.site?.client_name || data.site?.name || 'Unknown client'
+  await supabase.from('ops_activity').insert({
+    site_id: body.site_id,
+    type: 'invoice',
+    title: `Invoice generated — ${siteName}`,
+    description: `£${body.amount} · ${body.month}`,
+  })
+
   return NextResponse.json(data)
 }

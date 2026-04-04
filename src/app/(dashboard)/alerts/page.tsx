@@ -57,6 +57,32 @@ export default function AlertsPage() {
     fetchAlerts()
   }
 
+  async function resolveAll() {
+    await Promise.all(
+      activeAlerts.map((a) =>
+        fetch(`/api/alerts/${a.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resolved: true }),
+        })
+      )
+    )
+    fetchAlerts()
+  }
+
+  async function acknowledgeAll() {
+    await Promise.all(
+      activeAlerts.filter((a) => !a.acknowledged).map((a) =>
+        fetch(`/api/alerts/${a.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acknowledged: true }),
+        })
+      )
+    )
+    fetchAlerts()
+  }
+
   const sorted = [...activeAlerts].sort((a, b) => {
     const order = { critical: 0, warning: 1, info: 2 }
     return (order[a.severity] - order[b.severity]) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -108,7 +134,19 @@ export default function AlertsPage() {
 
       {/* Active alerts */}
       <div>
-        <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide mb-3">Active</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide">Active</h2>
+          {activeAlerts.length > 1 && (
+            <div className="flex items-center gap-3">
+              <button onClick={acknowledgeAll} className="text-xs text-[#9BA1B0] hover:text-[#E4E7EC] transition-colors">
+                Acknowledge all
+              </button>
+              <button onClick={resolveAll} className="text-xs text-[#22C55E] hover:underline">
+                Resolve all
+              </button>
+            </div>
+          )}
+        </div>
         {loading ? (
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-[#1A1D27] rounded-xl animate-pulse" />)}

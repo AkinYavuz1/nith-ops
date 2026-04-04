@@ -40,21 +40,37 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   await supabase.from('ops_uptime_checks').insert(checkData)
 
   if (!isUp) {
-    await supabase.from('ops_alerts').insert({
-      site_id: id,
-      type: 'site_down',
-      severity: 'critical',
-      title: `${site.url} is down`,
-      message: error || 'Site returned non-200 status',
-    })
+    await Promise.all([
+      supabase.from('ops_alerts').insert({
+        site_id: id,
+        type: 'site_down',
+        severity: 'critical',
+        title: `${site.url} is down`,
+        message: error || 'Site returned non-200 status',
+      }),
+      supabase.from('ops_activity').insert({
+        site_id: id,
+        type: 'alert',
+        title: 'Site went down',
+        description: error || 'Site returned non-200 status',
+      }),
+    ])
   } else if (responseTimeMs > 2000) {
-    await supabase.from('ops_alerts').insert({
-      site_id: id,
-      type: 'site_slow',
-      severity: 'warning',
-      title: 'Site responding slowly',
-      message: `Response time: ${responseTimeMs}ms`,
-    })
+    await Promise.all([
+      supabase.from('ops_alerts').insert({
+        site_id: id,
+        type: 'site_slow',
+        severity: 'warning',
+        title: 'Site responding slowly',
+        message: `Response time: ${responseTimeMs}ms`,
+      }),
+      supabase.from('ops_activity').insert({
+        site_id: id,
+        type: 'alert',
+        title: 'Site responding slowly',
+        description: `Response time: ${responseTimeMs}ms (threshold: 2000ms)`,
+      }),
+    ])
   }
 
   return NextResponse.json(checkData)

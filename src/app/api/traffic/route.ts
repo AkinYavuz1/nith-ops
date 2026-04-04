@@ -18,9 +18,14 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query
     if (error) throw error
-    return NextResponse.json(data?.length ? data : (siteId ? generateMockTraffic(siteId) : []))
+    if (data?.length) return NextResponse.json(data)
+    return NextResponse.json(siteId ? generateMockTraffic(siteId) : [], {
+      headers: { 'X-Data-Source': 'mock' },
+    })
   } catch {
-    return NextResponse.json(siteId ? generateMockTraffic(siteId) : [])
+    return NextResponse.json(siteId ? generateMockTraffic(siteId) : [], {
+      headers: { 'X-Data-Source': 'mock' },
+    })
   }
 }
 

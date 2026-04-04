@@ -19,17 +19,38 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
-const navItems = [
-  { href: '/', label: 'Overview', icon: LayoutDashboard },
-  { href: '/sites', label: 'Sites', icon: Globe },
-  { href: '/uptime', label: 'Uptime', icon: Activity },
-  { href: '/traffic', label: 'Traffic', icon: BarChart3 },
-  { href: '/alerts', label: 'Alerts', icon: Bell },
-  { href: '/clients', label: 'Clients', icon: Users },
-  { href: '/billing', label: 'Billing', icon: CreditCard },
-  { href: '/activity', label: 'Activity', icon: Clock },
-  { href: '/dailyduel', label: 'DailyDuel', icon: Gamepad2 },
-  { href: '/settings', label: 'Settings', icon: Settings },
+const navGroups = [
+  {
+    label: null,
+    items: [{ href: '/', label: 'Overview', icon: LayoutDashboard }],
+  },
+  {
+    label: 'Monitoring',
+    items: [
+      { href: '/sites', label: 'Sites', icon: Globe },
+      { href: '/uptime', label: 'Uptime', icon: Activity },
+      { href: '/traffic', label: 'Traffic', icon: BarChart3 },
+      { href: '/alerts', label: 'Alerts', icon: Bell },
+      { href: '/activity', label: 'Activity', icon: Clock },
+    ],
+  },
+  {
+    label: 'Business',
+    items: [
+      { href: '/clients', label: 'Clients', icon: Users },
+      { href: '/billing', label: 'Billing', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Projects',
+    items: [
+      { href: '/dailyduel', label: 'DailyDuel', icon: Gamepad2 },
+    ],
+  },
+  {
+    label: null,
+    items: [{ href: '/settings', label: 'Settings', icon: Settings }],
+  },
 ]
 
 export default function Sidebar() {
@@ -63,24 +84,33 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto scrollbar-thin">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg text-sm transition-colors ${
-                active
-                  ? 'bg-[#252836] text-[#E4E7EC]'
-                  : 'text-[#9BA1B0] hover:text-[#E4E7EC] hover:bg-[#252836]'
-              } ${collapsed ? 'justify-center' : ''}`}
-              title={collapsed ? label : undefined}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {!collapsed && <span>{label}</span>}
-            </Link>
-          )
-        })}
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'mt-2' : ''}>
+            {group.label && !collapsed && (
+              <p className="text-[#4B5263] text-[10px] font-semibold uppercase tracking-widest px-5 py-1.5">
+                {group.label}
+              </p>
+            )}
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-3 px-3 py-2.5 mx-2 rounded-lg text-sm transition-colors ${
+                    active
+                      ? 'bg-[#252836] text-[#E4E7EC]'
+                      : 'text-[#9BA1B0] hover:text-[#E4E7EC] hover:bg-[#252836]'
+                  } ${collapsed ? 'justify-center' : ''}`}
+                  title={collapsed ? label : undefined}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {!collapsed && <span>{label}</span>}
+                </Link>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Bottom */}

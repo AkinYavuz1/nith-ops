@@ -30,6 +30,7 @@ export default function TrafficPage() {
   const [loading, setLoading] = useState(true)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
   const [ddStats, setDdStats] = useState<{ playedToday: number; totalUsers: number } | null>(null)
+  const [isMockData, setIsMockData] = useState(false)
   const cfConfigured = false // Will be true when token is set
 
   const fetchData = useCallback(async () => {
@@ -37,12 +38,17 @@ export default function TrafficPage() {
       const sitesRes = await fetch('/api/sites', { signal: AbortSignal.timeout(10000) })
       const sites: Site[] = sitesRes.ok ? await sitesRes.json() : []
 
-      const trafficPromises = sites.map((s) =>
-        fetch(`/api/traffic?site_id=${s.id}`, { signal: AbortSignal.timeout(10000) })
-          .then((r) => r.ok ? r.json() : [])
-          .catch(() => [])
+      const trafficResponses = await Promise.all(
+        sites.map((s) =>
+          fetch(`/api/traffic?site_id=${s.id}`, { signal: AbortSignal.timeout(10000) })
+            .catch(() => null)
+        )
       )
-      const trafficResults = await Promise.all(trafficPromises)
+      const anyMock = trafficResponses.some((r) => r?.headers.get('X-Data-Source') === 'mock')
+      setIsMockData(anyMock)
+      const trafficResults = await Promise.all(
+        trafficResponses.map((r) => (r?.ok ? r.json() : []))
+      )
 
       const today = new Date().toISOString().split('T')[0]
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -103,6 +109,13 @@ export default function TrafficPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-[#E4E7EC]">Traffic Analytics</h1>
       </div>
+
+      {isMockData && (
+        <div className="bg-[#2B1D0E] border border-[#F59E0B]/30 rounded-xl p-3 flex items-center gap-2">
+          <span className="text-[#F59E0B] text-xs font-medium">Sample data</span>
+          <span className="text-[#9BA1B0] text-xs">— No real traffic data recorded yet. Connect Cloudflare to see live stats.</span>
+        </div>
+      )}
 
       {!cfConfigured && (
         <ConnectCard

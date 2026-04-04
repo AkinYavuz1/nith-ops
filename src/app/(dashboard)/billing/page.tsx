@@ -3,7 +3,7 @@ export const runtime = 'edge'
 
 
 import { useEffect, useState, useCallback } from 'react'
-import { PlusCircle, RefreshCw } from 'lucide-react'
+import { PlusCircle, RefreshCw, Send } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
@@ -69,6 +69,19 @@ export default function BillingPage() {
       body: JSON.stringify({ status }),
     })
     fetchData()
+  }
+
+  function sendInvoiceEmail(inv: Invoice) {
+    const site = sites.find((s) => s.id === inv.site_id)
+    const to = site?.client_email || ''
+    const clientName = site?.client_name || site?.name || 'there'
+    const subject = encodeURIComponent(`Invoice for ${inv.month} — Nith Digital`)
+    const body = encodeURIComponent(
+      `Hi ${clientName},\n\nPlease find your invoice for ${inv.month} below.\n\nAmount: £${inv.amount}\n\nThank you for your continued support.\n\nBest,\nAkin\nNith Digital`
+    )
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`)
+    // Mark as sent
+    updateInvoice(inv.id, 'sent')
   }
 
   // Build revenue chart (last 12 months)
@@ -189,10 +202,10 @@ export default function BillingPage() {
                           <div className="flex items-center gap-2">
                             {inv.status === 'pending' && (
                               <button
-                                onClick={() => updateInvoice(inv.id, 'sent')}
-                                className="text-xs text-[#3B82F6] hover:underline"
+                                onClick={() => sendInvoiceEmail(inv)}
+                                className="flex items-center gap-1 text-xs text-[#3B82F6] hover:underline"
                               >
-                                Mark sent
+                                <Send className="w-3 h-3" /> Send
                               </button>
                             )}
                             {inv.status !== 'paid' && (

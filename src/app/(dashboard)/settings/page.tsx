@@ -1,85 +1,68 @@
 'use client'
 export const runtime = 'edge'
 
-
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, RefreshCw, Download, Eye, EyeOff } from 'lucide-react'
+import { CheckCircle, XCircle, RefreshCw, Download, Terminal } from 'lucide-react'
 import Card from '@/components/Card'
 
 export default function SettingsPage() {
-  const [cfToken, setCfToken] = useState('')
-  const [cfAccount, setCfAccount] = useState('')
-  const [ghToken, setGhToken] = useState('')
-  const [ghUsername, setGhUsername] = useState('AkinYavuz1')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showCf, setShowCf] = useState(false)
-  const [showGh, setShowGh] = useState(false)
-  const [testing, setTesting] = useState<string | null>(null)
-  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }>>({})
+  const [pwResult, setPwResult] = useState<{ ok: boolean; message: string; command?: string } | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }> | null>(null)
   const [checkInterval, setCheckInterval] = useState('5')
   const [slowThreshold, setSlowThreshold] = useState('2000')
   const [timezone, setTimezone] = useState('Europe/London')
   const [autoScan, setAutoScan] = useState(true)
 
-  // Load settings from localStorage
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('ops_settings') || '{}')
     if (stored.checkInterval) setCheckInterval(stored.checkInterval)
     if (stored.slowThreshold) setSlowThreshold(stored.slowThreshold)
     if (stored.timezone) setTimezone(stored.timezone)
     if (stored.autoScan !== undefined) setAutoScan(stored.autoScan)
-    if (stored.ghUsername) setGhUsername(stored.ghUsername)
   }, [])
 
   function saveSettings() {
-    localStorage.setItem('ops_settings', JSON.stringify({
-      checkInterval, slowThreshold, timezone, autoScan, ghUsername,
-    }))
+    localStorage.setItem('ops_settings', JSON.stringify({ checkInterval, slowThreshold, timezone, autoScan }))
     alert('Settings saved.')
   }
 
-  async function testCloudflare() {
-    setTesting('cf')
+  async function testIntegrations() {
+    setTesting(true)
+    setTestResult(null)
     try {
-      const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cfAccount}/pages/projects`, {
-        headers: { Authorization: `Bearer ${cfToken}` },
-      })
-      const json = await res.json()
-      setTestResult((prev) => ({
-        ...prev,
-        cf: { ok: json.success, message: json.success ? `Found ${json.result?.length || 0} Pages projects` : json.errors?.[0]?.message || 'Connection failed' },
-      }))
+      const res = await fetch('/api/integrations/test', { method: 'POST' })
+      setTestResult(res.ok ? await res.json() : null)
     } catch {
-      setTestResult((prev) => ({ ...prev, cf: { ok: false, message: 'Connection failed' } }))
+      setTestResult(null)
     }
-    setTesting(null)
+    setTesting(false)
   }
 
-  async function testGitHub() {
-    setTesting('gh')
-    try {
-      const res = await fetch(`https://api.github.com/users/${ghUsername}/repos?per_page=1`, {
-        headers: { Authorization: `Bearer ${ghToken}` },
-      })
-      if (res.ok) {
-        const remaining = res.headers.get('X-RateLimit-Remaining')
-        setTestResult((prev) => ({ ...prev, gh: { ok: true, message: `Connected. Rate limit: ${remaining} remaining` } }))
-      } else {
-        setTestResult((prev) => ({ ...prev, gh: { ok: false, message: 'Authentication failed' } }))
-      }
-    } catch {
-      setTestResult((prev) => ({ ...prev, gh: { ok: false, message: 'Connection failed' } }))
+  async function changePassword() {
+    setPwResult(null)
+    if (newPassword !== confirmPassword) { setPwResult({ ok: false, message: 'Passwords do not match' }); return }
+    if (newPassword.length < 8) { setPwResult({ ok: false, message: 'Password must be at least 8 characters' }); return }
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+    const json = await res.json()
+    if (json.instructions) {
+      setPwResult({ ok: true, message: 'Run this command in your terminal to update the password:', command: json.message })
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
+    } else {
+      setPwResult({ ok: false, message: json.error || 'Failed' })
     }
-    setTesting(null)
   }
 
   async function exportData() {
     const [sitesRes, alertsRes, activityRes, invoicesRes] = await Promise.all([
-      fetch('/api/sites'),
-      fetch('/api/alerts'),
-      fetch('/api/activity'),
-      fetch('/api/invoices'),
+      fetch('/api/sites'), fetch('/api/alerts'), fetch('/api/activity'), fetch('/api/invoices'),
     ])
     const data = {
       sites: await sitesRes.json(),
@@ -97,126 +80,59 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
   }
 
-  async function changePassword() {
-    if (newPassword !== confirmPassword) { alert('Passwords do not match.'); return }
-    if (newPassword.length < 8) { alert('Password must be at least 8 characters.'); return }
-    alert('To change the password, update OPS_PASSWORD in .env.local and redeploy.')
-    setNewPassword('')
-    setConfirmPassword('')
-  }
-
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-2xl">
       <h1 className="text-xl font-bold text-[#E4E7EC]">Settings</h1>
 
-      {/* Cloudflare */}
+      {/* Integrations */}
       <Card className="p-4">
-        <h2 className="text-sm font-semibold text-[#E4E7EC] mb-4">Cloudflare Integration</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-[#9BA1B0] mb-1">Account ID</label>
-            <input
-              value={cfAccount}
-              onChange={(e) => setCfAccount(e.target.value)}
-              className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
-              placeholder="Add CLOUDFLARE_ACCOUNT_ID to .env.local"
-            />
+        <h2 className="text-sm font-semibold text-[#E4E7EC] mb-1">Integrations</h2>
+        <p className="text-xs text-[#9BA1B0] mb-4">
+          Cloudflare and GitHub tokens are configured via environment variables on the server.
+          Use <code className="bg-[#0F1117] px-1 rounded text-[#D4A84B]">wrangler pages secret put</code> to update them.
+        </p>
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center gap-2 text-xs">
+            <code className="bg-[#0F1117] px-2 py-1 rounded text-[#9BA1B0] flex-1">CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID</code>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-[#9BA1B0] mb-1">API Token</label>
-            <div className="relative">
-              <input
-                type={showCf ? 'text' : 'password'}
-                value={cfToken}
-                onChange={(e) => setCfToken(e.target.value)}
-                className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 pr-10 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
-                placeholder="Add CLOUDFLARE_API_TOKEN to .env.local"
-              />
-              <button onClick={() => setShowCf(!showCf)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9BA1B0] hover:text-[#E4E7EC]">
-                {showCf ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={testCloudflare}
-              disabled={testing === 'cf' || !cfToken || !cfAccount}
-              className="flex items-center gap-2 text-sm bg-[#1A1D27] border border-[#2E3241] hover:border-[#3B4261] text-[#E4E7EC] px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
-            >
-              {testing === 'cf' ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
-              Test connection
-            </button>
-            {testResult.cf && (
-              <div className={`flex items-center gap-1 text-sm ${testResult.cf.ok ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
-                {testResult.cf.ok ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                {testResult.cf.message}
-              </div>
-            )}
+          <div className="flex items-center gap-2 text-xs">
+            <code className="bg-[#0F1117] px-2 py-1 rounded text-[#9BA1B0] flex-1">GITHUB_TOKEN, GITHUB_USERNAME</code>
           </div>
         </div>
-      </Card>
-
-      {/* GitHub */}
-      <Card className="p-4">
-        <h2 className="text-sm font-semibold text-[#E4E7EC] mb-4">GitHub Integration</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-[#9BA1B0] mb-1">GitHub Username</label>
-            <input
-              value={ghUsername}
-              onChange={(e) => setGhUsername(e.target.value)}
-              className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
-              placeholder="AkinYavuz1"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[#9BA1B0] mb-1">Personal Access Token</label>
-            <div className="relative">
-              <input
-                type={showGh ? 'text' : 'password'}
-                value={ghToken}
-                onChange={(e) => setGhToken(e.target.value)}
-                className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 pr-10 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
-                placeholder="Add GITHUB_TOKEN to .env.local"
-              />
-              <button onClick={() => setShowGh(!showGh)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9BA1B0] hover:text-[#E4E7EC]">
-                {showGh ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={testGitHub}
-              disabled={testing === 'gh' || !ghToken}
-              className="flex items-center gap-2 text-sm bg-[#1A1D27] border border-[#2E3241] hover:border-[#3B4261] text-[#E4E7EC] px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
-            >
-              {testing === 'gh' ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
-              Test connection
-            </button>
-            {testResult.gh && (
-              <div className={`flex items-center gap-1 text-sm ${testResult.gh.ok ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
-                {testResult.gh.ok ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                {testResult.gh.message}
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={testIntegrations}
+            disabled={testing}
+            className="flex items-center gap-2 text-sm bg-[#1A1D27] border border-[#2E3241] hover:border-[#3B4261] text-[#E4E7EC] px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+          >
+            {testing ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+            Test connections
+          </button>
         </div>
+        {testResult && (
+          <div className="mt-3 space-y-2">
+            {Object.entries(testResult).map(([key, val]) => (
+              <div key={key} className={`flex items-center gap-2 text-sm ${val.ok ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+                {val.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
+                <span className="capitalize font-medium">{key}:</span> {val.message}
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Auto-discovery */}
       <Card className="p-4">
         <h2 className="text-sm font-semibold text-[#E4E7EC] mb-4">Auto-Discovery</h2>
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div
-              onClick={() => setAutoScan(!autoScan)}
-              className={`w-10 h-6 rounded-full transition-colors relative ${autoScan ? 'bg-[#D4A84B]' : 'bg-[#2E3241]'}`}
-            >
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${autoScan ? 'translate-x-5' : 'translate-x-1'}`} />
-            </div>
-            <span className="text-sm text-[#E4E7EC]">Auto-scan on dashboard load</span>
-          </label>
-        </div>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            onClick={() => setAutoScan(!autoScan)}
+            className={`w-10 h-6 rounded-full transition-colors relative ${autoScan ? 'bg-[#D4A84B]' : 'bg-[#2E3241]'}`}
+          >
+            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${autoScan ? 'translate-x-5' : 'translate-x-1'}`} />
+          </div>
+          <span className="text-sm text-[#E4E7EC]">Auto-scan on dashboard load</span>
+        </label>
       </Card>
 
       {/* Monitoring */}
@@ -267,8 +183,18 @@ export default function SettingsPage() {
 
       {/* Account */}
       <Card className="p-4">
-        <h2 className="text-sm font-semibold text-[#E4E7EC] mb-4">Account</h2>
+        <h2 className="text-sm font-semibold text-[#E4E7EC] mb-4">Change Password</h2>
         <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-[#9BA1B0] mb-1">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
+              placeholder="Current password"
+            />
+          </div>
           <div>
             <label className="block text-xs font-medium text-[#9BA1B0] mb-1">New Password</label>
             <input
@@ -276,7 +202,7 @@ export default function SettingsPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
-              placeholder="New password"
+              placeholder="New password (min 8 chars)"
             />
           </div>
           <div>
@@ -286,13 +212,13 @@ export default function SettingsPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
-              placeholder="Confirm password"
+              placeholder="Confirm new password"
             />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={changePassword}
-              disabled={!newPassword || !confirmPassword}
+              disabled={!currentPassword || !newPassword || !confirmPassword}
               className="bg-[#1A1D27] border border-[#2E3241] hover:border-[#3B4261] disabled:opacity-50 text-[#E4E7EC] px-4 py-2 rounded-lg text-sm transition-colors"
             >
               Change password
@@ -305,6 +231,20 @@ export default function SettingsPage() {
               Export all data
             </button>
           </div>
+          {pwResult && (
+            <div className={`mt-2 ${pwResult.ok ? 'text-[#22C55E]' : 'text-[#EF4444]'} text-sm`}>
+              <div className="flex items-center gap-2">
+                {pwResult.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
+                {pwResult.message}
+              </div>
+              {pwResult.command && (
+                <div className="mt-2 bg-[#0F1117] rounded-lg p-3 flex items-start gap-2">
+                  <Terminal className="w-4 h-4 text-[#D4A84B] flex-shrink-0 mt-0.5" />
+                  <code className="text-xs text-[#9BA1B0] break-all">{pwResult.command}</code>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Card>
     </div>

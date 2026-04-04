@@ -3,6 +3,7 @@ export const runtime = 'edge'
 
 import { useEffect, useState, useCallback } from 'react'
 import { ExternalLink, RefreshCw, Flame, Trophy, Gamepad2, CheckCircle, XCircle } from 'lucide-react'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import Card from '@/components/Card'
 
 interface DailyDuelData {
@@ -11,6 +12,7 @@ interface DailyDuelData {
   avgScoreToday: number
   topStreaks: { display_name: string; current_streak: number; best_streak: number; total_score: number }[]
   gameHealth: { active: number; deprioritized: number; retired: number }
+  playerHistory: { date: string; unique_visitors: number }[]
   deploy: { url: string; up: boolean; statusCode: number }
   fetchedAt: string
   error?: string
@@ -120,6 +122,21 @@ export default function DailyDuelPage() {
               sub={`${data.gameHealth.deprioritized} deprioritized · ${data.gameHealth.retired} retired`}
             />
           </div>
+
+          {/* Player history chart */}
+          {data.playerHistory.length > 1 && (
+            <Card className="p-4">
+              <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide mb-4">Players Per Day (30 days)</h2>
+              <ResponsiveContainer width="100%" height={160}>
+                <AreaChart data={data.playerHistory.map((d) => ({ date: d.date.slice(5), players: d.unique_visitors }))}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9BA1B0' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9BA1B0' }} allowDecimals={false} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1A1D27', border: '1px solid #2E3241', borderRadius: '8px', color: '#E4E7EC', fontSize: '12px' }} />
+                  <Area type="monotone" dataKey="players" stroke="#D4A84B" fill="#D4A84B" fillOpacity={0.2} name="Players" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
+          )}
 
           {/* Bottom row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

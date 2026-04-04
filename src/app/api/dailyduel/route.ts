@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { supabase as opsDb } from '@/lib/supabase'
 
 export const runtime = 'edge'
 
@@ -47,12 +48,56 @@ export async function GET() {
     const deprioritized = gameHealthRows?.filter((g) => g.status === 'deprioritized').length ?? 0
     const retired = gameHealthRows?.filter((g) => g.status === 'retired').length ?? 0
 
+    // Store today's player count as traffic in ops DB for historical tracking
+    if (playedToday > 0) {
+      const { data: ddSite } = await opsDb
+        .from('ops_sites')
+        .select('id')
+        .ilike('name', '%dailyduel%')
+        .maybeSingle()
+      if (ddSite?.id) {
+        await opsDb.from('ops_traffic').upsert(
+          {
+            site_id: ddSite.id,
+            date: today,
+            unique_visitors: playedToday,
+            page_views: playedToday,
+            bandwidth_bytes: 0,
+            requests: playedToday,
+            threats_blocked: 0,
+            top_pages: [],
+            top_countries: [],
+          },
+          { onConflict: 'site_id,date' }
+        )
+      }
+    }
+
+    // Fetch last 30 days of historical player data from ops traffic table
+    const { data: ddSiteForHistory } = await opsDb
+      .from('ops_sites')
+      .select('id')
+      .ilike('name', '%dailyduel%')
+      .maybeSingle()
+
+    let playerHistory: { date: string; unique_visitors: number }[] = []
+    if (ddSiteForHistory?.id) {
+      const { data: history } = await opsDb
+        .from('ops_traffic')
+        .select('date, unique_visitors')
+        .eq('site_id', ddSiteForHistory.id)
+        .order('date', { ascending: true })
+        .limit(30)
+      playerHistory = history ?? []
+    }
+
     return NextResponse.json({
       totalUsers: totalUsers ?? 0,
       playedToday,
       avgScoreToday: Math.round(avgScoreToday * 10) / 10,
       topStreaks: topStreaks ?? [],
       gameHealth: { active, deprioritized, retired },
+      playerHistory,
       deploy: {
         url: 'https://daily-duel.akinlive.workers.dev',
         up: deployStatus.ok,
