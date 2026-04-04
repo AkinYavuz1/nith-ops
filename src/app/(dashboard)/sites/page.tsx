@@ -23,10 +23,15 @@ function SitesContent() {
   const [prefill, setPrefill] = useState<Partial<Site>>({})
 
   const fetchSites = useCallback(async () => {
-    const res = await fetch('/api/sites')
-    const data = await res.json()
-    setSites(data)
-    setLoading(false)
+    try {
+      const res = await fetch('/api/sites', { signal: AbortSignal.timeout(10000) })
+      const data = res.ok ? await res.json() : []
+      setSites(data)
+    } catch {
+      setSites([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {

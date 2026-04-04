@@ -19,13 +19,19 @@ export default function BillingPage() {
   const [generating, setGenerating] = useState(false)
 
   const fetchData = useCallback(async () => {
-    const [sitesRes, invoicesRes] = await Promise.all([
-      fetch('/api/sites'),
-      fetch('/api/invoices'),
-    ])
-    setSites(await sitesRes.json())
-    setInvoices(await invoicesRes.json())
-    setLoading(false)
+    try {
+      const [sitesRes, invoicesRes] = await Promise.all([
+        fetch('/api/sites', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/invoices', { signal: AbortSignal.timeout(10000) }),
+      ])
+      setSites(sitesRes.ok ? await sitesRes.json() : [])
+      setInvoices(invoicesRes.ok ? await invoicesRes.json() : [])
+    } catch {
+      setSites([])
+      setInvoices([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])

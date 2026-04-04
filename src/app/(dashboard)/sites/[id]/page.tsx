@@ -34,32 +34,47 @@ export default function SiteDetailPage() {
   const [githubData, setGithubData] = useState<{ commits: Array<{ sha: string; commit: { message: string; author: { date: string; name: string } } }>; prs: number } | null>(null)
 
   const fetchAll = useCallback(async () => {
-    const [siteRes, uptimeRes, alertsRes, activityRes, invoicesRes, trafficRes] = await Promise.all([
-      fetch(`/api/sites/${id}`),
-      fetch(`/api/uptime?site_id=${id}&limit=50`),
-      fetch(`/api/alerts?site_id=${id}`),
-      fetch(`/api/activity?site_id=${id}`),
-      fetch(`/api/invoices?site_id=${id}`),
-      fetch(`/api/traffic?site_id=${id}`),
-    ])
-    const [siteData, uptimeData, alertsData, activityData, invoicesData, trafficData] =
-      await Promise.all([siteRes.json(), uptimeRes.json(), alertsRes.json(), activityRes.json(), invoicesRes.json(), trafficRes.json()])
-    setSite(siteData)
-    setUptimeChecks(uptimeData)
-    setAlerts(alertsData)
-    setActivity(activityData)
-    setInvoices(invoicesData)
-    setTraffic(Array.isArray(trafficData) ? trafficData.reverse() : [])
-    setLoading(false)
+    try {
+      const timeout = 10000
+      const fetchOrEmpty = (url: string) =>
+        fetch(url, { signal: AbortSignal.timeout(timeout) })
+          .then((r) => r.ok ? r.json() : null)
+          .catch(() => null)
 
-    // GitHub data
-    if (siteData.github_repo && process.env.NEXT_PUBLIC_GITHUB_TOKEN) {
-      const [commitsRes, prsRes] = await Promise.all([
-        fetch(`https://api.github.com/repos/${siteData.github_repo}/commits?per_page=5`),
-        fetch(`https://api.github.com/repos/${siteData.github_repo}/pulls?state=open`),
-      ])
-      const [commits, prs] = await Promise.all([commitsRes.json(), prsRes.json()])
-      setGithubData({ commits: Array.isArray(commits) ? commits : [], prs: Array.isArray(prs) ? prs.length : 0 })
+      const [siteData, uptimeData, alertsData, activityData, invoicesData, trafficData] =
+        await Promise.all([
+          fetchOrEmpty(`/api/sites/${id}`),
+          fetchOrEmpty(`/api/uptime?site_id=${id}&limit=50`),
+          fetchOrEmpty(`/api/alerts?site_id=${id}`),
+          fetchOrEmpty(`/api/activity?site_id=${id}`),
+          fetchOrEmpty(`/api/invoices?site_id=${id}`),
+          fetchOrEmpty(`/api/traffic?site_id=${id}`),
+        ])
+
+      if (siteData) setSite(siteData)
+      setUptimeChecks(Array.isArray(uptimeData) ? uptimeData : [])
+      setAlerts(Array.isArray(alertsData) ? alertsData : [])
+      setActivity(Array.isArray(activityData) ? activityData : [])
+      setInvoices(Array.isArray(invoicesData) ? invoicesData : [])
+      setTraffic(Array.isArray(trafficData) ? [...trafficData].reverse() : [])
+      setLoading(false)
+
+      // GitHub data
+      if (siteData?.github_repo && process.env.NEXT_PUBLIC_GITHUB_TOKEN) {
+        try {
+          const [commitsRes, prsRes] = await Promise.all([
+            fetch(`https://api.github.com/repos/${siteData.github_repo}/commits?per_page=5`, { signal: AbortSignal.timeout(8000) }),
+            fetch(`https://api.github.com/repos/${siteData.github_repo}/pulls?state=open`, { signal: AbortSignal.timeout(8000) }),
+          ])
+          const [commits, prs] = await Promise.all([
+            commitsRes.ok ? commitsRes.json() : [],
+            prsRes.ok ? prsRes.json() : [],
+          ])
+          setGithubData({ commits: Array.isArray(commits) ? commits : [], prs: Array.isArray(prs) ? prs.length : 0 })
+        } catch { /* GitHub data is optional */ }
+      }
+    } catch {
+      setLoading(false)
     }
   }, [id])
 

@@ -21,13 +21,19 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true)
 
   const fetchAlerts = useCallback(async () => {
-    const [activeRes, resolvedRes] = await Promise.all([
-      fetch('/api/alerts?resolved=false'),
-      fetch('/api/alerts?resolved=true'),
-    ])
-    setActiveAlerts(await activeRes.json())
-    setResolvedAlerts(await resolvedRes.json())
-    setLoading(false)
+    try {
+      const [activeRes, resolvedRes] = await Promise.all([
+        fetch('/api/alerts?resolved=false', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/alerts?resolved=true', { signal: AbortSignal.timeout(10000) }),
+      ])
+      setActiveAlerts(activeRes.ok ? await activeRes.json() : [])
+      setResolvedAlerts(resolvedRes.ok ? await resolvedRes.json() : [])
+    } catch {
+      setActiveAlerts([])
+      setResolvedAlerts([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {

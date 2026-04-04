@@ -2,7 +2,7 @@
 export const runtime = 'edge'
 
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { RefreshCw, TrendingUp, TrendingDown, Plus, X } from 'lucide-react'
 import {
   AreaChart,
@@ -37,46 +37,56 @@ export default function OverviewPage() {
   const [discovery, setDiscovery] = useState<{ github: { repos: Array<{ name: string; full_name: string; description: string | null; updated_at: string }> }; cloudflare: { projects: Array<{ name: string; subdomain: string }> } } | null>(null)
   const [dismissedRepos, setDismissedRepos] = useState<string[]>([])
 
+  const sitesRef = useRef<SiteWithCheck[]>([])
+
   const fetchData = useCallback(async () => {
-    const [sitesRes, alertsRes, activityRes, invoicesRes] = await Promise.all([
-      fetch('/api/sites'),
-      fetch('/api/alerts?resolved=false'),
-      fetch('/api/activity?limit=10'),
-      fetch('/api/invoices'),
-    ])
-    const [sitesData, alertsData, activityData, invoicesData] = await Promise.all([
-      sitesRes.json(),
-      alertsRes.json(),
-      activityRes.json(),
-      invoicesRes.json(),
-    ])
-    setSites(sitesData)
-    setAlerts(alertsData)
-    setActivity(activityData)
-    setInvoices(invoicesData)
-    setLastRefresh(new Date())
-    setLoading(false)
+    try {
+      const timeout = 10000
+      const [sitesRes, alertsRes, activityRes, invoicesRes] = await Promise.all([
+        fetch('/api/sites', { signal: AbortSignal.timeout(timeout) }),
+        fetch('/api/alerts?resolved=false', { signal: AbortSignal.timeout(timeout) }),
+        fetch('/api/activity?limit=10', { signal: AbortSignal.timeout(timeout) }),
+        fetch('/api/invoices', { signal: AbortSignal.timeout(timeout) }),
+      ])
+      const [sitesData, alertsData, activityData, invoicesData] = await Promise.all([
+        sitesRes.ok ? sitesRes.json() : [],
+        alertsRes.ok ? alertsRes.json() : [],
+        activityRes.ok ? activityRes.json() : [],
+        invoicesRes.ok ? invoicesRes.json() : [],
+      ])
+      sitesRef.current = sitesData
+      setSites(sitesData)
+      setAlerts(alertsData)
+      setActivity(activityData)
+      setInvoices(invoicesData)
+      setLastRefresh(new Date())
+      setLoading(false)
 
-    // Fetch traffic for chart
-    const trafficPromises = sitesData.slice(0, 5).map((s: Site) =>
-      fetch(`/api/traffic?site_id=${s.id}`).then((r) => r.json())
-    )
-    const trafficResults = await Promise.all(trafficPromises)
+      // Fetch traffic for chart
+      const trafficPromises = sitesData.slice(0, 5).map((s: Site) =>
+        fetch(`/api/traffic?site_id=${s.id}`, { signal: AbortSignal.timeout(timeout) })
+          .then((r) => r.ok ? r.json() : [])
+          .catch(() => [])
+      )
+      const trafficResults = await Promise.all(trafficPromises)
 
-    // Build combined chart data
-    const dateMap = new Map<string, Record<string, number>>()
-    sitesData.slice(0, 5).forEach((s: Site, i: number) => {
-      const trafficArr = trafficResults[i] || []
-      trafficArr.forEach((t: { date: string; unique_visitors: number }) => {
-        if (!dateMap.has(t.date)) dateMap.set(t.date, {})
-        dateMap.get(t.date)![s.name] = t.unique_visitors
+      // Build combined chart data
+      const dateMap = new Map<string, Record<string, number>>()
+      sitesData.slice(0, 5).forEach((s: Site, i: number) => {
+        const trafficArr = trafficResults[i] || []
+        trafficArr.forEach((t: { date: string; unique_visitors: number }) => {
+          if (!dateMap.has(t.date)) dateMap.set(t.date, {})
+          dateMap.get(t.date)![s.name] = t.unique_visitors
+        })
       })
-    })
-    const combined = Array.from(dateMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-30)
-      .map(([date, vals]) => ({ date: date.slice(5), ...vals }))
-    setTrafficData(combined)
+      const combined = Array.from(dateMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-30)
+        .map(([date, vals]) => ({ date: date.slice(5), ...vals }))
+      setTrafficData(combined)
+    } catch {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -97,16 +107,17 @@ export default function OverviewPage() {
     return () => clearInterval(interval)
   }, [fetchData])
 
-  // Uptime checks every 5 min
+  // Uptime checks every 5 min — use ref to avoid re-registering interval on every sites update
   useEffect(() => {
     const runChecks = async () => {
-      if (!sites.length) return
-      for (const site of sites) {
+      const currentSites = sitesRef.current
+      if (!currentSites.length) return
+      for (const site of currentSites) {
         if (site.status !== 'active') continue
         setChecking((prev) => new Set(Array.from(prev).concat(site.id)))
         const start = Date.now()
         try {
-          await fetch(`/api/sites/${site.id}/check`, { method: 'POST' })
+          await fetch(`/api/sites/${site.id}/check`, { method: 'POST', signal: AbortSignal.timeout(15000) })
         } catch {}
         setChecking((prev) => {
           const n = new Set(prev)
@@ -125,7 +136,7 @@ export default function OverviewPage() {
     }
     const interval = setInterval(runChecks, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [sites])
+  }, [])
 
   function dismissRepo(repoName: string) {
     const newDismissed = [...dismissedRepos, repoName]

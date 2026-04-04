@@ -23,30 +23,37 @@ export default function UptimePage() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
 
   const fetchData = useCallback(async () => {
-    const sitesRes = await fetch('/api/sites')
-    const sitesData: Site[] = await sitesRes.json()
+    try {
+      const sitesRes = await fetch('/api/sites', { signal: AbortSignal.timeout(10000) })
+      const sitesData: Site[] = sitesRes.ok ? await sitesRes.json() : []
 
-    const checkPromises = sitesData.map((s) =>
-      fetch(`/api/uptime?site_id=${s.id}&limit=30`).then((r) => r.json())
-    )
-    const checksData = await Promise.all(checkPromises)
+      const checkPromises = sitesData.map((s) =>
+        fetch(`/api/uptime?site_id=${s.id}&limit=30`, { signal: AbortSignal.timeout(10000) })
+          .then((r) => r.ok ? r.json() : [])
+          .catch(() => [])
+      )
+      const checksData = await Promise.all(checkPromises)
 
-    setSites(
-      sitesData.map((s, i) => {
-        const checks: UptimeCheck[] = checksData[i] || []
-        const upChecks = checks.filter((c) => c.is_up)
-        const avgMs = upChecks.length
-          ? Math.round(upChecks.reduce((sum, c) => sum + (c.response_time_ms || 0), 0) / upChecks.length)
-          : undefined
-        return {
-          ...s,
-          checks,
-          currentStatus: checks[0]?.is_up,
-          avgResponseTime: avgMs,
-        }
-      })
-    )
-    setLoading(false)
+      setSites(
+        sitesData.map((s, i) => {
+          const checks: UptimeCheck[] = checksData[i] || []
+          const upChecks = checks.filter((c) => c.is_up)
+          const avgMs = upChecks.length
+            ? Math.round(upChecks.reduce((sum, c) => sum + (c.response_time_ms || 0), 0) / upChecks.length)
+            : undefined
+          return {
+            ...s,
+            checks,
+            currentStatus: checks[0]?.is_up,
+            avgResponseTime: avgMs,
+          }
+        })
+      )
+    } catch {
+      setSites([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])

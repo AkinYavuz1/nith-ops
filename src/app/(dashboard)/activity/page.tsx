@@ -38,13 +38,19 @@ export default function ActivityPage() {
   const [filterType, setFilterType] = useState('')
 
   const fetchData = useCallback(async () => {
-    const [actRes, sitesRes] = await Promise.all([
-      fetch('/api/activity?limit=100'),
-      fetch('/api/sites'),
-    ])
-    setActivity(await actRes.json())
-    setSites(await sitesRes.json())
-    setLoading(false)
+    try {
+      const [actRes, sitesRes] = await Promise.all([
+        fetch('/api/activity?limit=100', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/sites', { signal: AbortSignal.timeout(10000) }),
+      ])
+      setActivity(actRes.ok ? await actRes.json() : [])
+      setSites(sitesRes.ok ? await sitesRes.json() : [])
+    } catch {
+      setActivity([])
+      setSites([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])

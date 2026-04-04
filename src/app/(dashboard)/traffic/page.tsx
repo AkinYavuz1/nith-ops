@@ -32,44 +32,51 @@ export default function TrafficPage() {
   const cfConfigured = false // Will be true when token is set
 
   const fetchData = useCallback(async () => {
-    const sitesRes = await fetch('/api/sites')
-    const sites: Site[] = await sitesRes.json()
+    try {
+      const sitesRes = await fetch('/api/sites', { signal: AbortSignal.timeout(10000) })
+      const sites: Site[] = sitesRes.ok ? await sitesRes.json() : []
 
-    const trafficPromises = sites.map((s) =>
-      fetch(`/api/traffic?site_id=${s.id}`).then((r) => r.json())
-    )
-    const trafficResults = await Promise.all(trafficPromises)
+      const trafficPromises = sites.map((s) =>
+        fetch(`/api/traffic?site_id=${s.id}`, { signal: AbortSignal.timeout(10000) })
+          .then((r) => r.ok ? r.json() : [])
+          .catch(() => [])
+      )
+      const trafficResults = await Promise.all(trafficPromises)
 
-    const today = new Date().toISOString().split('T')[0]
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const today = new Date().toISOString().split('T')[0]
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    const withTraffic: SiteTraffic[] = sites.map((s, i) => {
-      const traffic: TrafficEntry[] = trafficResults[i] || []
-      return {
-        ...s,
-        traffic: traffic.reverse(),
-        totalVisitors: traffic.reduce((sum, t) => sum + t.unique_visitors, 0),
-        totalThisWeek: traffic.filter((t) => t.date >= weekAgo).reduce((sum, t) => sum + t.unique_visitors, 0),
-        totalToday: traffic.find((t) => t.date === today)?.unique_visitors || 0,
-      }
-    })
-
-    setSitesWithTraffic(withTraffic)
-
-    // Build aggregate chart data
-    const dateMap = new Map<string, Record<string, number>>()
-    withTraffic.forEach((s) => {
-      s.traffic.forEach((t) => {
-        if (!dateMap.has(t.date)) dateMap.set(t.date, {})
-        dateMap.get(t.date)![s.name] = t.unique_visitors
+      const withTraffic: SiteTraffic[] = sites.map((s, i) => {
+        const traffic: TrafficEntry[] = trafficResults[i] || []
+        return {
+          ...s,
+          traffic: traffic.reverse(),
+          totalVisitors: traffic.reduce((sum, t) => sum + t.unique_visitors, 0),
+          totalThisWeek: traffic.filter((t) => t.date >= weekAgo).reduce((sum, t) => sum + t.unique_visitors, 0),
+          totalToday: traffic.find((t) => t.date === today)?.unique_visitors || 0,
+        }
       })
-    })
-    const combined = Array.from(dateMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-30)
-      .map(([date, vals]) => ({ date: date.slice(5), ...vals }))
-    setChartData(combined)
-    setLoading(false)
+
+      setSitesWithTraffic(withTraffic)
+
+      // Build aggregate chart data
+      const dateMap = new Map<string, Record<string, number>>()
+      withTraffic.forEach((s) => {
+        s.traffic.forEach((t) => {
+          if (!dateMap.has(t.date)) dateMap.set(t.date, {})
+          dateMap.get(t.date)![s.name] = t.unique_visitors
+        })
+      })
+      const combined = Array.from(dateMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-30)
+        .map(([date, vals]) => ({ date: date.slice(5), ...vals }))
+      setChartData(combined)
+    } catch {
+      setSitesWithTraffic([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])

@@ -17,10 +17,15 @@ export default function ClientsPage() {
   const router = useRouter()
 
   const fetchClients = useCallback(async () => {
-    const res = await fetch('/api/sites')
-    const data: Site[] = await res.json()
-    setClients(data.filter((s) => s.type === 'client'))
-    setLoading(false)
+    try {
+      const res = await fetch('/api/sites', { signal: AbortSignal.timeout(10000) })
+      const data: Site[] = res.ok ? await res.json() : []
+      setClients(data.filter((s) => s.type === 'client'))
+    } catch {
+      setClients([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchClients() }, [fetchClients])

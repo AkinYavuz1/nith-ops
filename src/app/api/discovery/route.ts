@@ -40,12 +40,23 @@ export async function GET() {
 
   if (isGitHubConfigured) {
     try {
-      const res = await fetch(
-        `https://api.github.com/users/${githubUsername}/repos?per_page=100&sort=updated`,
-        { headers: { Authorization: `Bearer ${githubToken}`, 'User-Agent': 'nith-ops' } }
-      )
-      const repos: GitHubRepo[] = await res.json()
-      result.github.repos = repos.filter(
+      const allRepos: GitHubRepo[] = []
+      let page = 1
+      while (true) {
+        const res = await fetch(
+          `https://api.github.com/user/repos?per_page=100&sort=updated&page=${page}`,
+          { headers: { Authorization: `Bearer ${githubToken}`, 'User-Agent': 'nith-ops' } }
+        )
+        if (!res.ok) break
+        const batch: GitHubRepo[] = await res.json()
+        if (!Array.isArray(batch) || batch.length === 0) break
+        allRepos.push(...batch)
+        // Check Link header for next page
+        const link = res.headers.get('Link') || ''
+        if (!link.includes('rel="next"')) break
+        page++
+      }
+      result.github.repos = allRepos.filter(
         (r) => !existingRepos.has(r.full_name) && !existingRepos.has(`${githubUsername}/${r.name}`)
       )
     } catch { /* ignore */ }
