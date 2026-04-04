@@ -1,4 +1,6 @@
 import Sidebar from '@/components/Sidebar'
+export const runtime = 'edge'
+
 import MobileNav from '@/components/MobileNav'
 
 export default function DashboardLayout({

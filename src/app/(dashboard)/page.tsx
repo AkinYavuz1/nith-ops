@@ -1,4 +1,6 @@
 'use client'
+export const runtime = 'edge'
+
 
 import { useEffect, useState, useCallback } from 'react'
 import { RefreshCw, TrendingUp, TrendingDown, Plus, X } from 'lucide-react'
