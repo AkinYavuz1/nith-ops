@@ -48,48 +48,41 @@ export async function GET() {
     const deprioritized = gameHealthRows?.filter((g) => g.status === 'deprioritized').length ?? 0
     const retired = gameHealthRows?.filter((g) => g.status === 'retired').length ?? 0
 
-    // Store today's player count as traffic in ops DB for historical tracking
-    if (playedToday > 0) {
+    // Store today's player count + fetch history — wrapped so failures never break the main response
+    let playerHistory: { date: string; unique_visitors: number }[] = []
+    try {
       const { data: ddSite } = await opsDb
         .from('ops_sites')
         .select('id')
         .ilike('name', '%dailyduel%')
         .maybeSingle()
+
       if (ddSite?.id) {
-        await opsDb.from('ops_traffic').upsert(
-          {
-            site_id: ddSite.id,
-            date: today,
-            unique_visitors: playedToday,
-            page_views: playedToday,
-            bandwidth_bytes: 0,
-            requests: playedToday,
-            threats_blocked: 0,
-            top_pages: [],
-            top_countries: [],
-          },
-          { onConflict: 'site_id,date' }
-        )
+        if (playedToday > 0) {
+          await opsDb.from('ops_traffic').upsert(
+            {
+              site_id: ddSite.id,
+              date: today,
+              unique_visitors: playedToday,
+              page_views: playedToday,
+              bandwidth_bytes: 0,
+              requests: playedToday,
+              threats_blocked: 0,
+              top_pages: [],
+              top_countries: [],
+            },
+            { onConflict: 'site_id,date' }
+          )
+        }
+        const { data: history } = await opsDb
+          .from('ops_traffic')
+          .select('date, unique_visitors')
+          .eq('site_id', ddSite.id)
+          .order('date', { ascending: true })
+          .limit(30)
+        playerHistory = history ?? []
       }
-    }
-
-    // Fetch last 30 days of historical player data from ops traffic table
-    const { data: ddSiteForHistory } = await opsDb
-      .from('ops_sites')
-      .select('id')
-      .ilike('name', '%dailyduel%')
-      .maybeSingle()
-
-    let playerHistory: { date: string; unique_visitors: number }[] = []
-    if (ddSiteForHistory?.id) {
-      const { data: history } = await opsDb
-        .from('ops_traffic')
-        .select('date, unique_visitors')
-        .eq('site_id', ddSiteForHistory.id)
-        .order('date', { ascending: true })
-        .limit(30)
-      playerHistory = history ?? []
-    }
+    } catch { /* history tracking is non-critical */ }
 
     return NextResponse.json({
       totalUsers: totalUsers ?? 0,
