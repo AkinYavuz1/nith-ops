@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { mockActivity } from '@/lib/mock-data'
 
 export const runtime = 'edge'
 
@@ -19,9 +18,9 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query
     if (error) throw error
-    return NextResponse.json(data ?? mockActivity)
+    return NextResponse.json(data ?? [])
   } catch {
-    return NextResponse.json(mockActivity)
+    return NextResponse.json([])
   }
 }
 
