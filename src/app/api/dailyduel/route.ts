@@ -19,7 +19,6 @@ export async function GET() {
       { count: totalUsers },
       { data: todayScores },
       { data: topStreaks },
-      { data: gameHealth },
       deployStatus,
     ] = await Promise.all([
       db.from('profiles').select('*', { count: 'exact', head: true }),
@@ -28,7 +27,6 @@ export async function GET() {
         .select('display_name, current_streak, best_streak, total_score')
         .order('current_streak', { ascending: false })
         .limit(5),
-      db.from('game_health').select('status').then((r) => r),
       fetch('https://daily-duel.akinlive.workers.dev', {
         method: 'HEAD',
         signal: AbortSignal.timeout(5000),
@@ -37,15 +35,17 @@ export async function GET() {
         .catch(() => ({ ok: false, status: 0 })),
     ])
 
+    const { data: gameHealthRows } = await db.from('game_health').select('status')
+
     const playedToday = todayScores?.length ?? 0
     const avgScoreToday =
       playedToday > 0
         ? todayScores!.reduce((sum, r) => sum + r.score, 0) / playedToday
         : 0
 
-    const active = gameHealth?.data?.filter((g: { status: string }) => g.status === 'active').length ?? 0
-    const deprioritized = gameHealth?.data?.filter((g: { status: string }) => g.status === 'deprioritized').length ?? 0
-    const retired = gameHealth?.data?.filter((g: { status: string }) => g.status === 'retired').length ?? 0
+    const active = gameHealthRows?.filter((g) => g.status === 'active').length ?? 0
+    const deprioritized = gameHealthRows?.filter((g) => g.status === 'deprioritized').length ?? 0
+    const retired = gameHealthRows?.filter((g) => g.status === 'retired').length ?? 0
 
     return NextResponse.json({
       totalUsers: totalUsers ?? 0,
