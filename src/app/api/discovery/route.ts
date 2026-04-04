@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const runtime = 'edge'
+
 interface GitHubRepo {
   name: string
   full_name: string
@@ -27,20 +29,13 @@ export async function GET() {
   const isGitHubConfigured = githubToken && githubToken !== 'placeholder_add_later'
   const isCFConfigured = cfToken && cfToken !== 'placeholder_add_later' && cfAccountId && cfAccountId !== 'placeholder_add_later'
 
-  // Get existing sites
   const { data: sites } = await supabase.from('ops_sites').select('github_repo, url, name')
   const existingRepos = new Set((sites || []).map((s: { github_repo?: string }) => s.github_repo).filter(Boolean))
   const existingUrls = new Set((sites || []).map((s: { url: string }) => s.url))
 
   const result = {
-    github: {
-      configured: isGitHubConfigured,
-      repos: [] as GitHubRepo[],
-    },
-    cloudflare: {
-      configured: isCFConfigured,
-      projects: [] as CloudflareProject[],
-    },
+    github: { configured: isGitHubConfigured, repos: [] as GitHubRepo[] },
+    cloudflare: { configured: isCFConfigured, projects: [] as CloudflareProject[] },
   }
 
   if (isGitHubConfigured) {
@@ -50,15 +45,10 @@ export async function GET() {
         { headers: { Authorization: `Bearer ${githubToken}`, 'User-Agent': 'nith-ops' } }
       )
       const repos: GitHubRepo[] = await res.json()
-      // Filter out already tracked repos
       result.github.repos = repos.filter(
-        (r) =>
-          !existingRepos.has(r.full_name) &&
-          !existingRepos.has(`${githubUsername}/${r.name}`)
+        (r) => !existingRepos.has(r.full_name) && !existingRepos.has(`${githubUsername}/${r.name}`)
       )
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
 
   if (isCFConfigured) {
@@ -73,9 +63,7 @@ export async function GET() {
         const url = `https://${p.subdomain}.pages.dev`
         return !existingUrls.has(url) && !(p.domains || []).some((d: string) => existingUrls.has(`https://${d}`))
       })
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
 
   return NextResponse.json(result)

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { generateMockTraffic } from '@/lib/mock-data'
 
+export const runtime = 'edge'
+
 export async function GET(request: NextRequest) {
   const siteId = request.nextUrl.searchParams.get('site_id')
 

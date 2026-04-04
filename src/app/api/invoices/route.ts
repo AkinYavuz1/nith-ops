@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const runtime = 'edge'
+
 export async function GET(request: NextRequest) {
   const siteId = request.nextUrl.searchParams.get('site_id')
   const month = request.nextUrl.searchParams.get('month')

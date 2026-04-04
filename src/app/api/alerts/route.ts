@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { mockAlerts } from '@/lib/mock-data'
 
+export const runtime = 'edge'
+
 export async function GET(request: NextRequest) {
   const resolved = request.nextUrl.searchParams.get('resolved')
   const siteId = request.nextUrl.searchParams.get('site_id')
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query
     if (error) throw error
-    return NextResponse.json(data?.length !== undefined ? data : mockAlerts)
+    return NextResponse.json(data ?? mockAlerts)
   } catch {
     return NextResponse.json(mockAlerts)
   }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkPassword, getAuthCookieName, getSessionMaxAge } from '@/lib/auth'
 
+export const runtime = 'edge'
+
 export async function POST(request: NextRequest) {
   const { password } = await request.json()
 
@@ -11,7 +13,7 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true })
   response.cookies.set(getAuthCookieName(), 'authenticated', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'lax',
     maxAge: getSessionMaxAge(),
     path: '/',

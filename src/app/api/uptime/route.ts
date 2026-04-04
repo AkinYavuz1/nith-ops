@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { generateMockUptimeChecks } from '@/lib/mock-data'
 
+export const runtime = 'edge'
+
 export async function GET(request: NextRequest) {
   const siteId = request.nextUrl.searchParams.get('site_id')
   const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50')
@@ -28,7 +30,6 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.from('ops_uptime_checks').insert(body).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Create alert if site is down or slow
   if (!body.is_up) {
     await supabase.from('ops_alerts').insert({
       site_id: body.site_id,
