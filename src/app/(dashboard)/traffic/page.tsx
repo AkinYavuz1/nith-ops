@@ -3,7 +3,7 @@ export const runtime = 'edge'
 
 
 import { useEffect, useState, useCallback } from 'react'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Gamepad2 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
@@ -29,6 +29,7 @@ export default function TrafficPage() {
   const [chartData, setChartData] = useState<Array<Record<string, string | number>>>([])
   const [loading, setLoading] = useState(true)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
+  const [ddStats, setDdStats] = useState<{ playedToday: number; totalUsers: number } | null>(null)
   const cfConfigured = false // Will be true when token is set
 
   const fetchData = useCallback(async () => {
@@ -79,7 +80,13 @@ export default function TrafficPage() {
     }
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+    fetch('/api/dailyduel', { signal: AbortSignal.timeout(10000) })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setDdStats({ playedToday: d.playedToday, totalUsers: d.totalUsers }) })
+      .catch(() => {})
+  }, [fetchData])
 
   const colors = ['#3B82F6', '#22C55E', '#D4A84B', '#F59E0B', '#8B5CF6', '#EC4899']
   const selected = selectedSite ? sitesWithTraffic.find((s) => s.id === selectedSite) : null
@@ -196,6 +203,37 @@ export default function TrafficPage() {
               </table>
             </div>
           </Card>
+
+          {/* Projects */}
+          <div>
+            <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide mb-3">Projects</h2>
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#2E3241]">
+                      <th className="text-left text-[#9BA1B0] font-medium px-4 py-3 text-xs uppercase tracking-wide">Project</th>
+                      <th className="text-right text-[#9BA1B0] font-medium px-4 py-3 text-xs uppercase tracking-wide">Players Today</th>
+                      <th className="text-right text-[#9BA1B0] font-medium px-4 py-3 text-xs uppercase tracking-wide">Total Users</th>
+                      <th className="text-right text-[#9BA1B0] font-medium px-4 py-3 text-xs uppercase tracking-wide">Metric</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="hover:bg-[#252836]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 font-medium text-[#E4E7EC]">
+                          <Gamepad2 className="w-4 h-4 text-[#D4A84B]" /> DailyDuel
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-[#9BA1B0]">{ddStats ? ddStats.playedToday : '—'}</td>
+                      <td className="px-4 py-3 text-right text-[#9BA1B0]">{ddStats ? ddStats.totalUsers : '—'}</td>
+                      <td className="px-4 py-3 text-right text-xs text-[#9BA1B0]">Players / day</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
 
           {/* Per-site drill-down */}
           {selected && (

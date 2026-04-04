@@ -3,7 +3,7 @@ export const runtime = 'edge'
 
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { RefreshCw, TrendingUp, TrendingDown, Plus, X } from 'lucide-react'
+import { RefreshCw, TrendingUp, TrendingDown, Plus, X, CheckCircle, XCircle, Gamepad2 } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -22,6 +22,47 @@ import { useRouter } from 'next/navigation'
 
 interface SiteWithCheck extends Site {
   lastCheck?: { is_up: boolean; response_time_ms?: number; checked_at: string }
+}
+
+function DailyDuelSummaryCard() {
+  const [dd, setDD] = useState<{ totalUsers: number; playedToday: number; avgScoreToday: number; deploy: { up: boolean } } | null>(null)
+  useEffect(() => {
+    fetch('/api/dailyduel', { signal: AbortSignal.timeout(10000) })
+      .then((r) => r.ok ? r.json() : null)
+      .then(setDD)
+      .catch(() => {})
+  }, [])
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Gamepad2 className="w-4 h-4 text-[#D4A84B]" />
+          <span className="text-sm font-medium text-[#E4E7EC]">DailyDuel</span>
+          <span className="text-xs text-[#9BA1B0]">daily-duel.akinlive.workers.dev</span>
+        </div>
+        {dd ? (
+          dd.deploy.up
+            ? <CheckCircle className="w-4 h-4 text-[#22C55E]" />
+            : <XCircle className="w-4 h-4 text-[#EF4444]" />
+        ) : <span className="w-4 h-4 rounded-full bg-[#2E3241] animate-pulse" />}
+      </div>
+      <div className="grid grid-cols-3 gap-4 text-sm">
+        <div>
+          <p className="text-xs text-[#9BA1B0] mb-0.5">Users</p>
+          <p className="font-semibold text-[#E4E7EC]">{dd ? dd.totalUsers : '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-[#9BA1B0] mb-0.5">Played Today</p>
+          <p className="font-semibold text-[#E4E7EC]">{dd ? dd.playedToday : '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-[#9BA1B0] mb-0.5">Avg Score</p>
+          <p className="font-semibold text-[#E4E7EC]">{dd ? `${dd.avgScoreToday}/10` : '—'}</p>
+        </div>
+      </div>
+    </Card>
+  )
 }
 
 export default function OverviewPage() {
@@ -455,7 +496,16 @@ export default function OverviewPage() {
         </Card>
       </div>
 
-      {/* Row 5 — Discovery panel */}
+      {/* Row 5 — Projects */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide">Projects</h2>
+          <Link href="/dailyduel" className="text-xs text-[#3B82F6] hover:underline">View all</Link>
+        </div>
+        <DailyDuelSummaryCard />
+      </div>
+
+      {/* Row 6 — Discovery panel */}
       {hasDiscoveries && (
         <Card className="p-4 border-[#D4A84B]/30">
           <div className="flex items-center justify-between mb-4">

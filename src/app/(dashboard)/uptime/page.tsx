@@ -3,7 +3,7 @@ export const runtime = 'edge'
 
 
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, CheckCircle } from 'lucide-react'
+import { RefreshCw, CheckCircle, Gamepad2 } from 'lucide-react'
 import { Site, UptimeCheck } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
 import Card from '@/components/Card'
@@ -21,6 +21,8 @@ export default function UptimePage() {
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
+  const [ddUp, setDdUp] = useState<boolean | null>(null)
+  const [ddCheckedAt, setDdCheckedAt] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -56,7 +58,13 @@ export default function UptimePage() {
     }
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    fetchData()
+    fetch('/api/dailyduel', { signal: AbortSignal.timeout(10000) })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) { setDdUp(d.deploy.up); setDdCheckedAt(d.fetchedAt) } })
+      .catch(() => {})
+  }, [fetchData])
 
   async function checkAllSites() {
     setChecking(true)
@@ -213,6 +221,34 @@ export default function UptimePage() {
           })}
         </div>
       )}
+
+      {/* Projects */}
+      <div>
+        <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide mb-3">Projects</h2>
+        <Card className="p-4">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full flex-shrink-0 ${ddUp === null ? 'bg-[#9BA1B0]' : ddUp ? 'bg-[#22C55E]' : 'bg-[#EF4444]'}`} />
+              <Link href="/dailyduel" className="font-medium text-[#E4E7EC] hover:text-[#D4A84B] transition-colors flex items-center gap-1.5">
+                <Gamepad2 className="w-4 h-4 text-[#D4A84B]" /> DailyDuel
+              </Link>
+              <span className="text-xs bg-[#D4A84B]/10 text-[#D4A84B] border border-[#D4A84B]/30 px-2 py-0.5 rounded-full">own</span>
+            </div>
+            <span className="text-sm text-[#9BA1B0] flex-shrink-0">
+              {ddCheckedAt ? timeAgo(ddCheckedAt) : 'Not checked yet'}
+            </span>
+          </div>
+          <div className="flex gap-0.5">
+            {Array.from({ length: 30 }, (_, i) => (
+              <div key={i} className={`flex-1 min-w-[8px] h-6 rounded-sm ${i === 29 && ddUp !== null ? (ddUp ? 'bg-[#22C55E]' : 'bg-[#EF4444]') : 'bg-[#2E3241]'}`} />
+            ))}
+          </div>
+          <div className="flex justify-between text-xs text-[#9BA1B0] mt-1">
+            <span>30 days ago</span>
+            <span>Today</span>
+          </div>
+        </Card>
+      </div>
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-[#9BA1B0]">

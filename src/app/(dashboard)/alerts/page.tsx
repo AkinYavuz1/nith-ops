@@ -3,11 +3,12 @@ export const runtime = 'edge'
 
 
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, AlertTriangle, AlertCircle, Info } from 'lucide-react'
+import { RefreshCw, AlertTriangle, AlertCircle, Info, Gamepad2, CheckCircle } from 'lucide-react'
 import { Alert } from '@/lib/types'
 import { timeAgo } from '@/lib/utils'
 import { severityBadge } from '@/components/Badge'
 import Card from '@/components/Card'
+import Link from 'next/link'
 
 const severityIcon = {
   critical: <AlertCircle className="w-4 h-4 text-[#EF4444]" />,
@@ -19,6 +20,7 @@ export default function AlertsPage() {
   const [activeAlerts, setActiveAlerts] = useState<Alert[]>([])
   const [resolvedAlerts, setResolvedAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
+  const [ddUp, setDdUp] = useState<boolean | null>(null)
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -39,6 +41,10 @@ export default function AlertsPage() {
   useEffect(() => {
     fetchAlerts()
     const interval = setInterval(fetchAlerts, 30000)
+    fetch('/api/dailyduel', { signal: AbortSignal.timeout(10000) })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setDdUp(d.deploy.up) })
+      .catch(() => {})
     return () => clearInterval(interval)
   }, [fetchAlerts])
 
@@ -71,6 +77,33 @@ export default function AlertsPage() {
         >
           <RefreshCw className="w-4 h-4" />
         </button>
+      </div>
+
+      {/* Projects status */}
+      <div>
+        <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide mb-3">Projects</h2>
+        <Card className={`p-4 border-l-4 ${ddUp === false ? 'border-l-[#EF4444]' : 'border-l-[#22C55E]'}`}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {ddUp === false
+                ? <AlertCircle className="w-4 h-4 text-[#EF4444]" />
+                : <CheckCircle className="w-4 h-4 text-[#22C55E]" />}
+              <div>
+                <div className="flex items-center gap-2">
+                  <Gamepad2 className="w-3.5 h-3.5 text-[#D4A84B]" />
+                  <p className="text-sm font-medium text-[#E4E7EC]">DailyDuel</p>
+                  {ddUp === false
+                    ? <span className="text-xs bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 px-2 py-0.5 rounded-full">critical</span>
+                    : <span className="text-xs bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30 px-2 py-0.5 rounded-full">ok</span>}
+                </div>
+                <p className="text-xs text-[#9BA1B0] mt-0.5">
+                  {ddUp === null ? 'Checking…' : ddUp ? 'App is online' : 'App appears down — daily-duel.akinlive.workers.dev'}
+                </p>
+              </div>
+            </div>
+            <Link href="/dailyduel" className="text-xs text-[#3B82F6] hover:underline flex-shrink-0">View</Link>
+          </div>
+        </Card>
       </div>
 
       {/* Active alerts */}
