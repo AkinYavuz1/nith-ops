@@ -142,7 +142,7 @@ export default function UptimePage() {
       {isMockData && (
         <div className="bg-[#2B1D0E] border border-[#F59E0B]/30 rounded-xl p-3 flex items-center gap-2">
           <span className="text-[#F59E0B] text-xs font-medium">Sample data</span>
-          <span className="text-[#9BA1B0] text-xs">— No real uptime checks recorded yet. Run "Check all now" to start collecting data.</span>
+          <span className="text-[#9BA1B0] text-xs">— No real uptime checks recorded yet. Run &quot;Check all now&quot; to start collecting data.</span>
         </div>
       )}
 
