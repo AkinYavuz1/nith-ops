@@ -4,13 +4,23 @@ export const runtime = 'edge'
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Search, ExternalLink, Pencil, Trash2, RefreshCw, Gamepad2 } from 'lucide-react'
+import { Plus, Search, ExternalLink, Pencil, Trash2, RefreshCw, Gamepad2, GitBranch } from 'lucide-react'
 import { Site, SiteType, SiteStatus } from '@/lib/types'
 import StatusDot from '@/components/StatusDot'
 import { typeBadge, statusBadge } from '@/components/Badge'
 import Card from '@/components/Card'
 import SiteModal from './SiteModal'
 import Link from 'next/link'
+
+interface UntrackedRepo {
+  name: string
+  full_name: string
+  html_url: string
+  description: string | null
+  homepage: string | null
+  language: string | null
+  updated_at: string
+}
 
 function SitesContent() {
   const searchParams = useSearchParams()
@@ -22,6 +32,8 @@ function SitesContent() {
   const [showModal, setShowModal] = useState(false)
   const [editingSite, setEditingSite] = useState<Site | null>(null)
   const [prefill, setPrefill] = useState<Partial<Site>>({})
+  const [untrackedRepos, setUntrackedRepos] = useState<UntrackedRepo[]>([])
+  const [dismissedRepos, setDismissedRepos] = useState<Set<string>>(new Set())
 
   const fetchSites = useCallback(async () => {
     try {
@@ -46,7 +58,25 @@ function SitesContent() {
       setPrefill(pre)
       setShowModal(true)
     }
+    // Fetch untracked GitHub repos via discovery
+    fetch('/api/discovery', { signal: AbortSignal.timeout(10000) })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.github?.repos) setUntrackedRepos(d.github.repos) })
+      .catch(() => {})
   }, [fetchSites, searchParams])
+
+  function quickAddRepo(repo: UntrackedRepo) {
+    const pre: Partial<Site> = {
+      name: repo.name,
+      github_repo: repo.full_name,
+      type: 'own',
+      status: 'development',
+    }
+    if (repo.homepage) pre.url = repo.homepage
+    setPrefill(pre)
+    setEditingSite(null)
+    setShowModal(true)
+  }
 
   async function deleteSite(id: string) {
     if (!confirm('Delete this site from monitoring?')) return
@@ -80,6 +110,59 @@ function SitesContent() {
           Add site
         </button>
       </div>
+
+      {untrackedRepos.filter((r) => !dismissedRepos.has(r.full_name)).length > 0 && (
+        <div className="bg-[#D4A84B]/10 border border-[#D4A84B]/30 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <GitBranch className="w-4 h-4 text-[#D4A84B]" />
+            <span className="text-sm font-semibold text-[#D4A84B]">
+              {untrackedRepos.filter((r) => !dismissedRepos.has(r.full_name)).length} untracked GitHub{' '}
+              {untrackedRepos.filter((r) => !dismissedRepos.has(r.full_name)).length === 1 ? 'repo' : 'repos'} detected
+            </span>
+          </div>
+          <div className="space-y-2">
+            {untrackedRepos
+              .filter((r) => !dismissedRepos.has(r.full_name))
+              .map((repo) => (
+                <div key={repo.full_name} className="flex items-center justify-between gap-3 bg-[#1A1D27] rounded-lg px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-[#E4E7EC] truncate">{repo.name}</span>
+                      {repo.language && (
+                        <span className="text-xs text-[#9BA1B0]">{repo.language}</span>
+                      )}
+                    </div>
+                    {repo.description && (
+                      <p className="text-xs text-[#9BA1B0] truncate mt-0.5">{repo.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#3B82F6] hover:underline flex items-center gap-1"
+                    >
+                      GitHub <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <button
+                      onClick={() => quickAddRepo(repo)}
+                      className="text-xs bg-[#D4A84B] hover:bg-[#c49535] text-black font-semibold px-2.5 py-1 rounded-lg transition-colors"
+                    >
+                      + Add
+                    </button>
+                    <button
+                      onClick={() => setDismissedRepos((prev) => new Set([...prev, repo.full_name]))}
+                      className="text-xs text-[#9BA1B0] hover:text-[#E4E7EC] px-1.5 py-1 rounded transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
