@@ -91,8 +91,9 @@ export default function ActivityPage() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-[#9BA1B0] mb-1">Site (optional)</label>
+                <label htmlFor="activity-site" className="block text-xs font-medium text-[#9BA1B0] mb-1">Site (optional)</label>
                 <select
+                  id="activity-site"
                   value={form.site_id}
                   onChange={(e) => setForm({ ...form, site_id: e.target.value })}
                   className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"
@@ -102,8 +103,9 @@ export default function ActivityPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#9BA1B0] mb-1">Type</label>
+                <label htmlFor="activity-type" className="block text-xs font-medium text-[#9BA1B0] mb-1">Type</label>
                 <select
+                  id="activity-type"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value as ActivityType })}
                   className="w-full bg-[#0F1117] border border-[#2E3241] rounded-lg px-3 py-2 text-sm text-[#E4E7EC] focus:outline-none focus:border-[#3B4261]"

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -7,10 +7,18 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#D4A84B",
+};
+
 export const metadata: Metadata = {
-  title: "Nith Ops — Operations Dashboard",
+  title: { default: "Nith Ops", template: "%s — Nith Ops" },
   description: "Private operations dashboard for Nith Digital",
   manifest: "/manifest.json",
+  robots: { index: false, follow: false },
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
