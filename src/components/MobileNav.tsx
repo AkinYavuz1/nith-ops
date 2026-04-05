@@ -7,7 +7,7 @@ import {
   Globe,
   Activity,
   Bell,
-  Gamepad2,
+  CreditCard,
 } from 'lucide-react'
 
 const mobileNav = [
@@ -15,7 +15,7 @@ const mobileNav = [
   { href: '/sites', label: 'Sites', icon: Globe },
   { href: '/uptime', label: 'Uptime', icon: Activity },
   { href: '/alerts', label: 'Alerts', icon: Bell },
-  { href: '/dailyduel', label: 'DailyDuel', icon: Gamepad2 },
+  { href: '/billing', label: 'Billing', icon: CreditCard },
 ]
 
 export default function MobileNav() {

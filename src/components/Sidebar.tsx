@@ -15,7 +15,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Gamepad2,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -32,6 +31,7 @@ const navGroups = [
       { href: '/traffic', label: 'Traffic', icon: BarChart3 },
       { href: '/alerts', label: 'Alerts', icon: Bell },
       { href: '/activity', label: 'Activity', icon: Clock },
+      { href: '/dailyduel', label: 'DailyDuel', icon: Globe },
     ],
   },
   {
@@ -39,12 +39,6 @@ const navGroups = [
     items: [
       { href: '/clients', label: 'Clients', icon: Users },
       { href: '/billing', label: 'Billing', icon: CreditCard },
-    ],
-  },
-  {
-    label: 'Projects',
-    items: [
-      { href: '/dailyduel', label: 'DailyDuel', icon: Gamepad2 },
     ],
   },
   {

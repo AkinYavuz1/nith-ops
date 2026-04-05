@@ -4,13 +4,12 @@ export const runtime = 'edge'
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Search, ExternalLink, Pencil, Trash2, RefreshCw, Gamepad2, GitBranch } from 'lucide-react'
+import { Plus, Search, ExternalLink, Pencil, Trash2, RefreshCw, GitBranch } from 'lucide-react'
 import { Site, SiteType, SiteStatus } from '@/lib/types'
 import StatusDot from '@/components/StatusDot'
 import { typeBadge, statusBadge } from '@/components/Badge'
 import Card from '@/components/Card'
 import SiteModal from './SiteModal'
-import Link from 'next/link'
 
 interface UntrackedRepo {
   name: string
@@ -305,51 +304,6 @@ function SitesContent() {
               No sites match your filters.
             </div>
           )}
-
-          {/* Projects section */}
-          <div>
-            <h2 className="text-sm font-semibold text-[#9BA1B0] uppercase tracking-wide mb-3 mt-2">Projects</h2>
-            <Card>
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <tbody>
-                    <tr className="border-b border-[#2E3241] last:border-0 hover:bg-[#252836]">
-                      <td className="px-4 py-3"><StatusDot isUp={true} size="sm" /></td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Gamepad2 className="w-4 h-4 text-[#D4A84B]" />
-                          <span className="font-medium text-[#E4E7EC]">DailyDuel</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <a href="https://daily-duel.akinyavuz.workers.dev" target="_blank" rel="noopener noreferrer" className="text-[#3B82F6] hover:underline flex items-center gap-1">
-                          daily-duel.akinyavuz.workers.dev <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </td>
-                      <td className="px-4 py-3"><span className="text-xs bg-[#D4A84B]/10 text-[#D4A84B] border border-[#D4A84B]/30 px-2 py-0.5 rounded-full">own</span></td>
-                      <td className="px-4 py-3"><span className="text-xs bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30 px-2 py-0.5 rounded-full">active</span></td>
-                      <td className="px-4 py-3 text-[#9BA1B0]">—</td>
-                      <td className="px-4 py-3">
-                        <Link href="/dailyduel" className="text-xs text-[#3B82F6] hover:underline">View</Link>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="md:hidden p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <StatusDot isUp={true} />
-                    <div>
-                      <p className="font-medium text-[#E4E7EC]">DailyDuel</p>
-                      <p className="text-xs text-[#9BA1B0]">daily-duel.akinyavuz.workers.dev</p>
-                    </div>
-                  </div>
-                  <Link href="/dailyduel" className="text-xs text-[#3B82F6] hover:underline">View</Link>
-                </div>
-              </div>
-            </Card>
-          </div>
         </>
       )}
 
