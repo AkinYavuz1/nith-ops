@@ -123,7 +123,7 @@ export default function AlertsPage() {
                     : <span className="text-xs bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30 px-2 py-0.5 rounded-full">ok</span>}
                 </div>
                 <p className="text-xs text-[#9BA1B0] mt-0.5">
-                  {ddUp === null ? 'Checking…' : ddUp ? 'App is online' : 'App appears down — daily-duel.akinlive.workers.dev'}
+                  {ddUp === null ? 'Checking…' : ddUp ? 'App is online' : 'App appears down — daily-duel.akinyavuz.workers.dev'}
                 </p>
               </div>
             </div>

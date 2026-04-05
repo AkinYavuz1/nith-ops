@@ -322,8 +322,8 @@ function SitesContent() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <a href="https://daily-duel.akinlive.workers.dev" target="_blank" rel="noopener noreferrer" className="text-[#3B82F6] hover:underline flex items-center gap-1">
-                          daily-duel.akinlive.workers.dev <ExternalLink className="w-3 h-3" />
+                        <a href="https://daily-duel.akinyavuz.workers.dev" target="_blank" rel="noopener noreferrer" className="text-[#3B82F6] hover:underline flex items-center gap-1">
+                          daily-duel.akinyavuz.workers.dev <ExternalLink className="w-3 h-3" />
                         </a>
                       </td>
                       <td className="px-4 py-3"><span className="text-xs bg-[#D4A84B]/10 text-[#D4A84B] border border-[#D4A84B]/30 px-2 py-0.5 rounded-full">own</span></td>
@@ -342,7 +342,7 @@ function SitesContent() {
                     <StatusDot isUp={true} />
                     <div>
                       <p className="font-medium text-[#E4E7EC]">DailyDuel</p>
-                      <p className="text-xs text-[#9BA1B0]">daily-duel.akinlive.workers.dev</p>
+                      <p className="text-xs text-[#9BA1B0]">daily-duel.akinyavuz.workers.dev</p>
                     </div>
                   </div>
                   <Link href="/dailyduel" className="text-xs text-[#3B82F6] hover:underline">View</Link>

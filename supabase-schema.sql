@@ -117,5 +117,5 @@ INSERT INTO ops_sites (name, url, type, github_repo, contract_type, status, note
   ('Not an Octavia', 'https://not-an-octavia.uk', 'own', 'AkinYavuz1/NotAnOctavia', 'internal', 'active', 'ML-curated used car deals site'),
   ('gAIns', 'https://gainsai.uk', 'own', 'AkinYavuz1/gymtracker', 'internal', 'development', 'AI-powered gym tracker — in development'),
   ('Tumble Tots', 'https://tumbletots.pages.dev', 'client', NULL, 'pro_bono', 'active', 'Pro bono childminding website for Carly'),
-  ('DailyDuel', 'https://daily-duel.akinlive.workers.dev', 'own', 'AkinYavuz1/dailyduel', 'internal', 'active', 'Daily multiplayer mini-game platform — separate Supabase project')
+  ('DailyDuel', 'https://daily-duel.akinyavuz.workers.dev', 'own', 'AkinYavuz1/dailyduel', 'internal', 'active', 'Daily multiplayer mini-game platform — separate Supabase project')
 ON CONFLICT DO NOTHING;

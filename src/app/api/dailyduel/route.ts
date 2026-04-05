@@ -28,7 +28,7 @@ export async function GET() {
         .select('display_name, current_streak, best_streak, total_score')
         .order('current_streak', { ascending: false })
         .limit(5),
-      fetch('https://daily-duel.akinlive.workers.dev', {
+      fetch('https://daily-duel.akinyavuz.workers.dev', {
         method: 'GET',
         signal: AbortSignal.timeout(8000),
       })
@@ -92,7 +92,7 @@ export async function GET() {
       gameHealth: { active, deprioritized, retired },
       playerHistory,
       deploy: {
-        url: 'https://daily-duel.akinlive.workers.dev',
+        url: 'https://daily-duel.akinyavuz.workers.dev',
         up: deployStatus.ok,
         statusCode: deployStatus.status,
       },

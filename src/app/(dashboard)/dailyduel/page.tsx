@@ -70,7 +70,7 @@ export default function DailyDuelPage() {
         </div>
         <div className="flex items-center gap-2">
           <a
-            href="https://daily-duel.akinlive.workers.dev"
+            href="https://daily-duel.akinyavuz.workers.dev"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs text-[#3B82F6] hover:underline"
