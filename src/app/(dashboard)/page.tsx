@@ -3,7 +3,7 @@ export const runtime = 'edge'
 
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { RefreshCw, TrendingUp, TrendingDown, Plus, X, CheckCircle, XCircle } from 'lucide-react'
+import { RefreshCw, TrendingUp, TrendingDown, Plus, X } from 'lucide-react'
 import {
   AreaChart,
   Area,
