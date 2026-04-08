@@ -20,6 +20,7 @@ interface GitHubRepo {
 }
 
 export async function POST(request: NextRequest) {
+  try {
   // Simple auth — reuse the same session password
   const authHeader = request.headers.get('authorization')
   const expectedToken = process.env.SYNC_SECRET || process.env.OPS_PASSWORD || 'nithdigital2026'
@@ -109,4 +110,8 @@ export async function POST(request: NextRequest) {
     imported,
     errors: errors.length ? errors : undefined,
   })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: 'Internal error', detail: message }, { status: 500 })
+  }
 }
