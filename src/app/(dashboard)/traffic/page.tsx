@@ -9,7 +9,6 @@ import {
 } from 'recharts'
 import { Site } from '@/lib/types'
 import Card from '@/components/Card'
-import ConnectCard from '@/components/ConnectCard'
 
 interface TrafficEntry {
   date: string
@@ -29,8 +28,7 @@ export default function TrafficPage() {
   const [chartData, setChartData] = useState<Array<Record<string, string | number>>>([])
   const [loading, setLoading] = useState(true)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
-  const [isMockData, setIsMockData] = useState(false)
-  const [cfConfigured, setCfConfigured] = useState(false)
+  const [hasData, setHasData] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -43,13 +41,11 @@ export default function TrafficPage() {
             .catch(() => null)
         )
       )
-      const anyMock = trafficResponses.some((r) => r?.headers.get('X-Data-Source') === 'mock')
-      const anyCf = trafficResponses.some((r) => {
+      const anyReal = trafficResponses.some((r) => {
         const src = r?.headers.get('X-Data-Source')
         return src === 'cloudflare' || src === 'supabase'
       })
-      setIsMockData(anyMock && !anyCf)
-      setCfConfigured(anyCf)
+      setHasData(anyReal)
       const trafficResults = await Promise.all(
         trafficResponses.map((r) => (r?.ok ? r.json() : []))
       )
@@ -110,25 +106,10 @@ export default function TrafficPage() {
         <h1 className="text-xl font-bold text-[#E4E7EC]">Traffic Analytics</h1>
       </div>
 
-      {isMockData && (
-        <div className="bg-[#2B1D0E] border border-[#F59E0B]/30 rounded-xl p-3 flex items-center gap-2">
-          <span className="text-[#F59E0B] text-xs font-medium">Sample data</span>
-          <span className="text-[#9BA1B0] text-xs">— No real traffic data recorded yet. Connect Cloudflare to see live stats.</span>
+      {!hasData && !loading && (
+        <div className="bg-[#1A1D27] border border-[#2E3241] rounded-xl p-3 flex items-center gap-2">
+          <span className="text-[#9BA1B0] text-xs">Only sites with Cloudflare zones show traffic data. Sites hosted on GitHub or Vercel will show no data.</span>
         </div>
-      )}
-
-      {!cfConfigured && (
-        <ConnectCard
-          service="Cloudflare"
-          description="Connect Cloudflare to see real traffic data. Currently showing mock data."
-          steps={[
-            { text: 'Go to Cloudflare dashboard → My Profile → API Tokens' },
-            { text: 'Create a token with "Zone Analytics" read permission for all zones' },
-            { text: 'Add to .env.local:', code: 'CLOUDFLARE_API_TOKEN=your_token' },
-            { text: 'Add your account ID:', code: 'CLOUDFLARE_ACCOUNT_ID=your_id' },
-            { text: 'Add each site\'s zone ID in site settings' },
-          ]}
-        />
       )}
 
       {loading ? (
@@ -170,7 +151,7 @@ export default function TrafficPage() {
                 <YAxis tick={{ fontSize: 10, fill: '#9BA1B0' }} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: '12px', color: '#9BA1B0' }} />
-                {sitesWithTraffic.slice(0, 6).map((s, i) => (
+                {sitesWithTraffic.filter((s) => s.traffic.length > 0).slice(0, 6).map((s, i) => (
                   <Bar key={s.id} dataKey={s.name} stackId="a" fill={colors[i % colors.length]} />
                 ))}
               </BarChart>
@@ -191,7 +172,7 @@ export default function TrafficPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sitesWithTraffic.map((s) => {
+                  {sitesWithTraffic.filter((s) => s.traffic.length > 0).map((s) => {
                     const isUp = s.totalThisWeek >= (s.traffic.slice(7, 14).reduce((sum, t) => sum + t.unique_visitors, 0))
                     return (
                       <tr

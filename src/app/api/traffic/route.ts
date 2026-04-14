@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { generateMockTraffic } from '@/lib/mock-data'
 
 export const runtime = 'edge'
 
@@ -160,13 +159,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 3. Fall back to mock data
-    return NextResponse.json(siteId ? generateMockTraffic(siteId) : [], {
-      headers: { 'X-Data-Source': 'mock' },
+    // 3. No data available — return empty
+    return NextResponse.json([], {
+      headers: { 'X-Data-Source': 'none' },
     })
   } catch {
-    return NextResponse.json(siteId ? generateMockTraffic(siteId) : [], {
-      headers: { 'X-Data-Source': 'mock' },
+    return NextResponse.json([], {
+      headers: { 'X-Data-Source': 'none' },
     })
   }
 }
