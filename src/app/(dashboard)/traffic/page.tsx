@@ -30,7 +30,7 @@ export default function TrafficPage() {
   const [loading, setLoading] = useState(true)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
   const [isMockData, setIsMockData] = useState(false)
-  const cfConfigured = false // Will be true when token is set
+  const [cfConfigured, setCfConfigured] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -44,7 +44,12 @@ export default function TrafficPage() {
         )
       )
       const anyMock = trafficResponses.some((r) => r?.headers.get('X-Data-Source') === 'mock')
-      setIsMockData(anyMock)
+      const anyCf = trafficResponses.some((r) => {
+        const src = r?.headers.get('X-Data-Source')
+        return src === 'cloudflare' || src === 'supabase'
+      })
+      setIsMockData(anyMock && !anyCf)
+      setCfConfigured(anyCf)
       const trafficResults = await Promise.all(
         trafficResponses.map((r) => (r?.ok ? r.json() : []))
       )
