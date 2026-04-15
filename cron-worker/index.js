@@ -57,5 +57,16 @@ export default {
         console.error('Invoice generation failed:', err)
       }
     }
+
+    // ── Monthly GSC sitemap re-submission (1st of month at 10:00 UTC) ─────────
+    if (date === 1 && hour === 10) {
+      try {
+        const gscRes = await fetch(`${base}/api/cron/gsc-submit?secret=${secret}`)
+        const gscBody = await gscRes.json()
+        console.log('GSC sitemap submission result:', JSON.stringify(gscBody))
+      } catch (err) {
+        console.error('GSC sitemap submission failed:', err)
+      }
+    }
   },
 }
