@@ -1,0 +1,11 @@
+name = "nith-ops-cron"
+main = "index.js"
+compatibility_date = "2024-09-23"
+account_id = "64ceb35918eac85b39ce9a215931d498"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+DASHBOARD_URL = "https://nith-ops.pages.dev"
+CRON_SECRET = "nithops2026cron"
